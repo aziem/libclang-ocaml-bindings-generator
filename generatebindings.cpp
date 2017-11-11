@@ -77,7 +77,8 @@ CXChildVisitResult gatherEnumInfo(CXCursor c, CXCursor parent, CXClientData clie
 };
 
 void printEnumBindings(EnumInfo e) {
-  cout << "type " << e.name << " =" << endl;
+  string enum_lowername = lowerCase(e.name);
+  cout << "type " << enum_lowername << " =" << endl;
   for(auto s : e.enumconstants) {
     cout << "\t | " << s << endl;
   }
@@ -88,8 +89,7 @@ void printEnumBindings(EnumInfo e) {
   }
   cout << endl;
 
-  string enum_lowername = lowerCase(e.name);
-  cout << "let " << enum_lowername << " T.Enum " << e.name << " [" << endl;
+  cout << "let " << enum_lowername << " = T.Enum " << e.name << " [" << endl;
 
   for(auto s : e.enumconstants) {
     cout << "\t" << s << ", " << lowerCase(s) << ";" << endl;
