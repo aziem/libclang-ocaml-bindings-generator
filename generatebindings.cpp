@@ -262,46 +262,53 @@ void printEnumBindings(EnumInfo e) {
   cout << "]" << endl;
 }
 
+
+void generateEnumBindings(CXCursor cur) {
+  vector<EnumInfo> enums;
+  clang_visitChildren(cur, gatherEnumInfo, &enums);
+
+  for(auto e : enums) {
+    printEnumBindings(e);
+    cout << endl;
+  }
+}
+
+void generateStructBindings(CXCursor cur) {
+  vector<StructDecl> structdecls;
+  clang_visitChildren(cur, gatherStructDecls, &structdecls);
+
+  for(auto s : structdecls) {
+    printStructDecl(s);
+    cout << endl;
+  }
+}
+
+void generateFuncBindings(CXCursor cur) {
+  vector<FuncDecl> funcdecls;
+  clang_visitChildren(cur, gatherFuncDecls, &funcdecls);
+
+  for (auto f : funcdecls) {
+    printFuncDecl(f);
+    cout << endl;
+  }
+}
+
+
 int main(int argc, char *argv[]) {
   if(argc < 2) {
     cout << "Requires a C/C++ header file to parse\n";
 	    exit(1);
   }
-
   
   CXIndex index = clang_createIndex(0,0);
   auto unit = parseFile(index, argv[1]);
 
   CXCursor cur = clang_getTranslationUnitCursor(unit);
 
-  vector<EnumInfo> enums;
-  clang_visitChildren(cur, gatherEnumInfo, &enums);
+  generateEnumBindings(cur);
+  generateStructBindings(cur);
+  generateFuncBindings(cur);
 
-  vector<FuncDecl> funcdecls;
-  clang_visitChildren(cur, gatherFuncDecls, &funcdecls);
-
-  vector<StructDecl> structdecls;
-  clang_visitChildren(cur, gatherStructDecls, &structdecls);
-
-
-  for(auto e : enums) {
-    printEnumBindings(e);
-    cout << endl;
-  }
-
-  cout << "FuncDecls Size: " << funcdecls.size() << endl;
-
-  for (auto f : funcdecls) {
-    printFuncDecl(f);
-    cout << endl;
-  }
-  
-  cout << "StructDecls Size: " << structdecls.size() << endl;
-
-  for(auto s : structdecls) {
-    printStructDecl(s);
-    cout << endl;
-  }
 
   clang_disposeTranslationUnit(unit);
   clang_disposeIndex(index);
