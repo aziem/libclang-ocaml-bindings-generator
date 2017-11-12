@@ -1,0 +1,11 @@
+WIP - C++ version of OCaml-C bindings generator using libclang
+
+
+Issues:
+
+libclang doesn't seem to expose types for function pointers in
+structs: the returned type is CXType_Unexposed. However, we can still
+print the function prototype type as a string.
+
+Potential way to do fix here:
+http://clang-developers.42468.n3.nabble.com/Function-pointer-in-a-struct-declaration-td4044706.html
