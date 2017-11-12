@@ -1,5 +1,8 @@
 WIP - C++ version of OCaml-C bindings generator using libclang
 
+binaryninjacore.h is a test file for the generator, and is my main
+use-case at the moment.
+
 
 Issues:
 
