@@ -53,7 +53,7 @@ CXTranslationUnit parseFile(CXIndex index, string filename) {
   }
 }
 
-string typeToString(CXType ty) {
+string typeToString(CXType ty, CXCursor c) {
   switch(ty.kind) {
   case CXType_Void: return "T.void";
   case CXType_UInt: return "T.size_t";
@@ -61,13 +61,58 @@ string typeToString(CXType ty) {
   case CXType_Bool: return "T.bool";
   case CXType_Char_S: return "T.string";
   case CXType_Char_U: return "T.string";
-  //case CXType_Unexposed: return "UNEXPOSED";  <--- This is returned for a function pointer in a struct
-  // Solution here maybe? http://clang-developers.42468.n3.nabble.com/Function-pointer-in-a-struct-declaration-td4044706.html 
+  case CXType_FunctionProto: {
+    // For function proto we need to do some extra work by traversing
+    // the cursor to get the parameter types.
+    string rettype = typeToString(clang_getResultType(ty), c);
+    vector<string> parmtypes;
+    
+    clang_visitChildren(c,
+			[](CXCursor c, CXCursor p, CXClientData cd) {
+			  switch(clang_getCursorKind(c)) {
+			  case CXCursor_ParmDecl: {
+
+			    vector<string>* ret = (vector<string>*) cd;
+
+			    string parmtypestring = typeToString(clang_getCursorType(c), c);
+			    ret->push_back(parmtypestring);
+			    break;
+			  }
+			  default: break;
+			  }
+			  return CXChildVisit_Continue;
+			},
+			(CXClientData) &parmtypes);
+
+    string res = "";
+    for(auto pt : parmtypes) {
+      res += (pt + " -> ");
+    }
+
+    res += "returning " + rettype;
+    return res;
+  }
+  case CXType_Unexposed: {
+    // Function pointers inside a struct result in this case. Getting
+    // the canonical type returns a function proto type which is
+    // processed in the recursive call. 
+    CXType t = clang_getCanonicalType(ty);
+    return typeToString(t, c);
+  }
 
   case CXType_Pointer: {
     CXType ptee = clang_getPointeeType(ty);
-    return "T.ptr " + typeToString(ptee);
+    
+    // TODO: Find a better way to do this as it is a bit of a hack: if
+    // we have a function pointer we don't want to print the T.ptr.
+    // The LHS case handles function pointer fields inside a struct
+    if(ptee.kind != CXType_Unexposed || ptee.kind != CXType_FunctionProto) {
+      return "T.ptr (" + typeToString(ptee, c) + ")";
+    } else {
+      return "(" + typeToString(ptee, c) + ")";
+    }
   }
+  
 
   default: return getFromCXString(clang_getTypeSpelling(ty)); 
   }
@@ -89,7 +134,7 @@ CXChildVisitResult gatherStructDecls(CXCursor c, CXCursor parent, CXClientData c
 			    CXType f_type = clang_getCursorType(c);
 			    vector<tuple<string, string>>* fieldnames = (vector<tuple<string, string>>*) cd;
 			    string fieldname = getFromCXString(clang_getCursorSpelling(c));
-			    fieldnames->push_back(make_tuple(fieldname, typeToString(f_type)));
+			    fieldnames->push_back(make_tuple(fieldname, typeToString(f_type, c)));
 			    break;
 			  }
 			  default: break;
@@ -126,7 +171,7 @@ CXChildVisitResult gatherFuncDecls(CXCursor c, CXCursor parent, CXClientData cli
     CXType retty = clang_getResultType(fty);
 
     f.name= getFromCXString(clang_getCursorSpelling(c));
-    f.resulttype = typeToString(retty);
+    f.resulttype = typeToString(retty, c);
 
     clang_visitChildren(c,
 			[](CXCursor c, CXCursor p, CXClientData cd) {
@@ -134,7 +179,7 @@ CXChildVisitResult gatherFuncDecls(CXCursor c, CXCursor parent, CXClientData cli
 			  case CXCursor_ParmDecl: {
 			    CXType c_type = clang_getCursorType(c);
 			    vector<string>* paramtypes = (vector<string>*) cd;
-			    string s = typeToString(c_type);
+			    string s = typeToString(c_type, c);
 			    paramtypes->push_back(s);
 			    break;
 			  }

@@ -4,11 +4,16 @@ binaryninjacore.h is a test file for the generator, and is my main
 use-case at the moment.
 
 
-Issues:
+Notes:
 
 libclang doesn't seem to expose types for function pointers in
 structs: the returned type is CXType_Unexposed. However, we can still
 print the function prototype type as a string.
 
-Potential way to do fix here:
+Solution from here:
+
 http://clang-developers.42468.n3.nabble.com/Function-pointer-in-a-struct-declaration-td4044706.html
+
+is to get the canonical type of the unexposed type and then that
+exposes the function proto type giving us enough info to translate to
+an ocaml function signature.
