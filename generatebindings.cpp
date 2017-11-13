@@ -138,6 +138,9 @@ string typeToString(CXType ty, CXCursor c) {
 
 
 CXChildVisitResult gatherStructDecls(CXCursor c, CXCursor parent, CXClientData client_data) {
+  if(clang_Location_isInSystemHeader(clang_getCursorLocation(c)) != 0) {
+    return CXChildVisit_Continue;
+  }
   switch(clang_getCursorKind(c)) {
   case CXCursor_StructDecl: {
     vector<StructDecl>* v = (vector<StructDecl>*) client_data;
@@ -180,6 +183,9 @@ void printStructDecl(StructDecl s) {
 
 
 CXChildVisitResult gatherFuncDecls(CXCursor c, CXCursor parent, CXClientData client_data) {
+  if(clang_Location_isInSystemHeader(clang_getCursorLocation(c)) != 0) {
+    return CXChildVisit_Continue;
+  }
   switch(clang_getCursorKind(c)) {
   case CXCursor_FunctionDecl: {
     vector<FuncDecl>* v = (vector<FuncDecl>*) client_data;
@@ -225,6 +231,9 @@ void printFuncDecl(FuncDecl f) {
 
 
 CXChildVisitResult gatherEnumInfo(CXCursor c, CXCursor parent, CXClientData client_data) {
+  if(clang_Location_isInSystemHeader(clang_getCursorLocation(c)) != 0) {
+    return CXChildVisit_Continue;
+  }
   switch(clang_getCursorKind(c)) {
   case CXCursor_EnumDecl: {
 
