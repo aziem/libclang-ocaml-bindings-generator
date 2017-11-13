@@ -61,6 +61,18 @@ string typeToString(CXType ty, CXCursor c) {
   case CXType_Bool: return "T.bool";
   case CXType_Char_S: return "T.string";
   case CXType_Char_U: return "T.string";
+  case CXType_Typedef: {
+    string s = getFromCXString(clang_getTypeSpelling(ty));
+    // Ugly hack: check if the typedef contains an int and if so, use
+    // the OCaml equivanlent.
+    size_t found = s.find("int");
+    if (found != std::string::npos) {
+      return "T." + s;
+    }
+
+    // Otherwise return the typedef'd type.
+    return getFromCXString(clang_getTypeSpelling(ty));
+  }
   case CXType_FunctionProto: {
     // For function proto we need to do some extra work by traversing
     // the cursor to get the parameter types.
