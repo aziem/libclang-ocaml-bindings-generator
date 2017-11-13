@@ -263,35 +263,114 @@ void printEnumBindings(EnumInfo e) {
 }
 
 
-void generateEnumBindings(CXCursor cur) {
+vector<EnumInfo> generateEnumBindings(CXCursor cur) {
   vector<EnumInfo> enums;
   clang_visitChildren(cur, gatherEnumInfo, &enums);
 
-  for(auto e : enums) {
-    printEnumBindings(e);
-    cout << endl;
-  }
+  // for(auto e : enums) {
+    // printEnumBindings(e);
+    // cout << endl;
+  // }
+
+  return enums;
 }
 
-void generateStructBindings(CXCursor cur) {
+vector<StructDecl> generateStructBindings(CXCursor cur) {
   vector<StructDecl> structdecls;
   clang_visitChildren(cur, gatherStructDecls, &structdecls);
 
-  for(auto s : structdecls) {
-    printStructDecl(s);
-    cout << endl;
-  }
+  // for(auto s : structdecls) {
+    // printStructDecl(s);
+    // cout << endl;
+  // }
+
+  return structdecls;
 }
 
-void generateFuncBindings(CXCursor cur) {
+vector<FuncDecl> generateFuncBindings(CXCursor cur) {
   vector<FuncDecl> funcdecls;
   clang_visitChildren(cur, gatherFuncDecls, &funcdecls);
 
-  for (auto f : funcdecls) {
-    printFuncDecl(f);
+  // for (auto f : funcdecls) {
+    // printFuncDecl(f);
+    // cout << endl;
+  // }
+
+  return funcdecls;
+}
+
+
+void generateBindings(CXCursor cur) {
+  vector<StructDecl> strucs = generateStructBindings(cur);
+  vector<FuncDecl> funcs = generateFuncBindings(cur);
+  vector<EnumInfo> enums = generateEnumBindings(cur);
+  
+  cout << "open Ctypes" << endl;
+
+  // print out type definitions first
+  for(auto e : enums) {
+    string enum_lowername = lowerCase(e.name);
+    cout << "type " << enum_lowername << " =" << endl;
+    for(auto ec : e.enumconstants) {
+      cout << "\t | " << ec << endl;
+    }
     cout << endl;
   }
+
+  for(auto s : strucs) {
+    cout << "type " << s.name << endl;
+  }
+
+  cout << endl;
+
+  cout << "module Enums (T : Cstubs_structs.TYPE) = " << endl;
+  cout << "struct" << endl;
+
+  for(auto e : enums) {
+    string enum_lowername = lowerCase(e.name);
+    for(auto s : e.enumconstants) {
+      cout << "\t" << "let " << lowerCase(s) << " = T.constant \"" << s << "\" T.int64_t" << endl;
+    }
+    cout << endl;
+    
+    cout << "\t" << "let " << enum_lowername << " = T.Enum " << e.name << " [" << endl;
+    
+    for(auto s : e.enumconstants) {
+      cout << "\t\t" << s << ", " << lowerCase(s) << ";" << endl;
+    }
+
+    cout << "\t" << "]" << endl << endl;
+    
+  }
+
+  for(auto s : strucs) {
+    cout << "\tlet " << s.name << " : " << s.name << " Ctypes.structure T.typ = T.structure \"" << s.name << "\"" << endl;
+    for( auto f : s.fieldnames ) {
+      cout << "\tlet " << s.name + "_" + get<0>(f) << " = T.field " << s.name << " \"" << get<0>(f) << "\" (" << get<1>(f) << ")" << endl;
+    }
+    cout << endl << endl;
+  }
+
+  cout << "end" << endl << endl;
+
+  cout << "module Bindings(T : Cstubs_structs.TYPE with type 'a typ = 'a typ)(F : Cstubs.FOREIGN) =" << endl;
+  cout << "struct" << endl;
+  cout << "\tmodule E = Enums(T)" << endl;
+  cout << "\topen F" << endl;
+  
+  for(auto f : funcs) {
+    cout << "\t let " << f.name << " = F.foreign \"" << f.name << "\" (";
+    for(auto e : f.paramtypes) {
+      cout << e << " @-> ";
+    }
+    cout << "returning (" << f.resulttype << "))" << endl;
+  }
+
+  
+  cout << "end" << endl;
+
 }
+
 
 
 int main(int argc, char *argv[]) {
@@ -304,12 +383,8 @@ int main(int argc, char *argv[]) {
   auto unit = parseFile(index, argv[1]);
 
   CXCursor cur = clang_getTranslationUnitCursor(unit);
-
-  generateEnumBindings(cur);
-  generateStructBindings(cur);
-  generateFuncBindings(cur);
-
-
+  generateBindings(cur);
+    
   clang_disposeTranslationUnit(unit);
   clang_disposeIndex(index);
   
