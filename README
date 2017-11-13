@@ -1,14 +1,11 @@
 C++ version of OCaml-C bindings generator using libclang
 
-binaryninjacore.h is a test file for the generator, and is my main
-use-case at the moment.
-
 Usage:
 
-./generator -f <filename>
+./generator -f <c/c++ header file>
 
-Optional -c++ argument makes libclang parse the file as a C++ file,
-not a C file.
+Optional -c++ argument makes libclang parse the file as a C++ header,
+not a C header.
 
 The output can be redirected to a file, and is two OCaml modules: one
 for enums/structs bindings and the other for function bindings.
