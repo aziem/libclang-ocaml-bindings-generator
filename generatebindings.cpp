@@ -5,6 +5,7 @@
 #include <tuple>
 
 #include <clang-c/Index.h>
+#include "cmdparser.hpp"
 
 using namespace std;;
 
@@ -42,8 +43,14 @@ string lowerCase(string s) {
     return lowername;
 }
 
-CXTranslationUnit parseFile(CXIndex index, string filename) {
-  CXTranslationUnit unit = clang_parseTranslationUnit(index, filename.c_str(), nullptr, 0, nullptr, 0, CXTranslationUnit_None);
+CXTranslationUnit parseFile(CXIndex index, string filename, bool cpp) {
+  CXTranslationUnit unit;
+  if(cpp) {
+    const char *const opt = "-xc++";
+    unit = clang_parseTranslationUnit(index, filename.c_str(), &opt, 1, nullptr, 0, CXTranslationUnit_None);
+  } else {
+    unit = clang_parseTranslationUnit(index, filename.c_str(), nullptr, 0, nullptr, 0, CXTranslationUnit_None);
+  }
   if(unit==nullptr) {
     cerr << "Unable to parse file." << endl;
     exit(-1);
@@ -364,16 +371,20 @@ void generateBindings(CXCursor cur) {
 
 }
 
-
+void configure_parser(cli::Parser& parser) {
+  parser.set_required<std::string>("f","file", "", "header file to process");
+  parser.set_optional<bool>("c++", "c++", false, "Parse file as a C++ file");
+}
 
 int main(int argc, char *argv[]) {
-  if(argc < 2) {
-    cout << "Requires a C/C++ header file to parse\n";
-	    exit(1);
-  }
+  cli::Parser parser(argc, argv);
+  configure_parser(parser);
+  parser.run_and_exit_if_error();
+
+  string filename = parser.get<string>("f");
   
   CXIndex index = clang_createIndex(0,0);
-  auto unit = parseFile(index, argv[1]);
+  auto unit = parseFile(index, filename, parser.get<bool>("c++"));
 
   CXCursor cur = clang_getTranslationUnitCursor(unit);
   generateBindings(cur);
