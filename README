@@ -1,19 +1,14 @@
-WIP - C++ version of OCaml-C bindings generator using libclang
+C++ version of OCaml-C bindings generator using libclang
 
 binaryninjacore.h is a test file for the generator, and is my main
 use-case at the moment.
 
+Usage:
 
-Notes:
+./generator -f <filename>
 
-libclang doesn't seem to expose types for function pointers in
-structs: the returned type is CXType_Unexposed. However, we can still
-print the function prototype type as a string.
+Optional -c++ argument makes libclang parse the file as a C++ file,
+not a C file.
 
-Solution from here:
-
-http://clang-developers.42468.n3.nabble.com/Function-pointer-in-a-struct-declaration-td4044706.html
-
-is to get the canonical type of the unexposed type and then that
-exposes the function proto type giving us enough info to translate to
-an ocaml function signature.
+The output can be redirected to a file, and is two OCaml modules: one
+for enums/structs bindings and the other for function bindings.
