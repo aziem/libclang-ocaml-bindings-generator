@@ -43,19 +43,21 @@ string lowerCase(string s) {
     return lowername;
 }
 
-CXTranslationUnit parseFile(CXIndex index, string filename, bool cpp) {
+CXTranslationUnit parseFile(CXIndex index, string filename, bool iscpp) {
+
   CXTranslationUnit unit;
-  if(cpp) {
+
+  if(iscpp) {
     const char *const opt = "-xc++";
     unit = clang_parseTranslationUnit(index, filename.c_str(), &opt, 1, nullptr, 0, CXTranslationUnit_None);
   } else {
     unit = clang_parseTranslationUnit(index, filename.c_str(), nullptr, 0, nullptr, 0, CXTranslationUnit_None);
   }
+
   if(unit==nullptr) {
-    cerr << "Unable to parse file." << endl;
+    cerr << "Clang parsing failed." << endl;
     exit(-1);
-  } 
-  else {
+  } else {
     return unit;
   }
 }
@@ -80,6 +82,7 @@ string typeToString(CXType ty, CXCursor c) {
     // Otherwise return the typedef'd type.
     return getFromCXString(clang_getTypeSpelling(ty));
   }
+
   case CXType_FunctionProto: {
     // For function proto we need to do some extra work by traversing
     // the cursor to get the parameter types.
@@ -104,6 +107,7 @@ string typeToString(CXType ty, CXCursor c) {
 			(CXClientData) &parmtypes);
 
     string res = "";
+
     for(auto pt : parmtypes) {
       res += (pt + " -> ");
     }
@@ -111,6 +115,7 @@ string typeToString(CXType ty, CXCursor c) {
     res += "returning " + rettype;
     return res;
   }
+
   case CXType_Unexposed: {
     // Function pointers inside a struct result in this case. Getting
     // the canonical type returns a function proto type which is
@@ -141,6 +146,7 @@ CXChildVisitResult gatherStructDecls(CXCursor c, CXCursor parent, CXClientData c
   if(clang_Location_isInSystemHeader(clang_getCursorLocation(c)) != 0) {
     return CXChildVisit_Continue;
   }
+
   switch(clang_getCursorKind(c)) {
   case CXCursor_StructDecl: {
     vector<StructDecl>* v = (vector<StructDecl>*) client_data;
@@ -167,7 +173,6 @@ CXChildVisitResult gatherStructDecls(CXCursor c, CXCursor parent, CXClientData c
   }
 
   default: break;
-    
   }
 
   return CXChildVisit_Recurse;
@@ -186,6 +191,7 @@ CXChildVisitResult gatherFuncDecls(CXCursor c, CXCursor parent, CXClientData cli
   if(clang_Location_isInSystemHeader(clang_getCursorLocation(c)) != 0) {
     return CXChildVisit_Continue;
   }
+
   switch(clang_getCursorKind(c)) {
   case CXCursor_FunctionDecl: {
     vector<FuncDecl>* v = (vector<FuncDecl>*) client_data;
@@ -234,6 +240,7 @@ CXChildVisitResult gatherEnumInfo(CXCursor c, CXCursor parent, CXClientData clie
   if(clang_Location_isInSystemHeader(clang_getCursorLocation(c)) != 0) {
     return CXChildVisit_Continue;
   }
+
   switch(clang_getCursorKind(c)) {
   case CXCursor_EnumDecl: {
 
@@ -259,7 +266,6 @@ CXChildVisitResult gatherEnumInfo(CXCursor c, CXCursor parent, CXClientData clie
 			(CXClientData) &e.enumconstants);
     v->push_back(e);
     break;
-    
   }
   
   default: break;
@@ -271,6 +277,7 @@ CXChildVisitResult gatherEnumInfo(CXCursor c, CXCursor parent, CXClientData clie
 void printEnumBindings(EnumInfo e) {
   string enum_lowername = lowerCase(e.name);
   cout << "type " << enum_lowername << " =" << endl;
+
   for(auto s : e.enumconstants) {
     cout << "\t | " << s << endl;
   }
@@ -329,7 +336,6 @@ void generateBindings(CXCursor cur) {
   for(auto s : strucs) {
     cout << "type " << s.name << endl;
   }
-
   cout << endl;
 
   cout << "module Enums (T : Cstubs_structs.TYPE) = " << endl;
@@ -347,7 +353,6 @@ void generateBindings(CXCursor cur) {
     for(auto s : e.enumconstants) {
       cout << "\t\t" << s << ", " << lowerCase(s) << ";" << endl;
     }
-
     cout << "\t" << "]" << endl << endl;
     
   }
