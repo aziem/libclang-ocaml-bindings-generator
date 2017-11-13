@@ -116,17 +116,16 @@ string typeToString(CXType ty, CXCursor c) {
     CXType ptee = clang_getPointeeType(ty);
     
     // TODO: Find a better way to do this as it is a bit of a hack: if
-    // we have a function pointer we don't want to print the T.ptr.
-    // The LHS case handles function pointer fields inside a struct
+    // we have a function pointer we don't want to print the T.ptr in
+    // front of the function type signature. The LHS case handles
+    // function pointer fields inside a struct
     if(ptee.kind != CXType_Unexposed || ptee.kind != CXType_FunctionProto) {
       return "T.ptr (" + typeToString(ptee, c) + ")";
     } else {
       return "(" + typeToString(ptee, c) + ")";
     }
   }
-  
-
-  default: return getFromCXString(clang_getTypeSpelling(ty)); 
+  default: return getFromCXString(clang_getTypeSpelling(ty));
   }
 }
 
@@ -278,36 +277,18 @@ void printEnumBindings(EnumInfo e) {
 vector<EnumInfo> generateEnumBindings(CXCursor cur) {
   vector<EnumInfo> enums;
   clang_visitChildren(cur, gatherEnumInfo, &enums);
-
-  // for(auto e : enums) {
-    // printEnumBindings(e);
-    // cout << endl;
-  // }
-
   return enums;
 }
 
 vector<StructDecl> generateStructBindings(CXCursor cur) {
   vector<StructDecl> structdecls;
   clang_visitChildren(cur, gatherStructDecls, &structdecls);
-
-  // for(auto s : structdecls) {
-    // printStructDecl(s);
-    // cout << endl;
-  // }
-
   return structdecls;
 }
 
 vector<FuncDecl> generateFuncBindings(CXCursor cur) {
   vector<FuncDecl> funcdecls;
   clang_visitChildren(cur, gatherFuncDecls, &funcdecls);
-
-  // for (auto f : funcdecls) {
-    // printFuncDecl(f);
-    // cout << endl;
-  // }
-
   return funcdecls;
 }
 
